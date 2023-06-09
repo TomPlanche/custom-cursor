@@ -23,7 +23,7 @@ import {lerp} from "../../assets/utils";
 // Style variables
 const cursorConsts = {
   size: '2rem',
-  backgroundColor: '#eeeeee50'
+  backgroundColor: '#eeeeee'
 }
 
 const Cursor = styled.div`
@@ -38,19 +38,20 @@ const Cursor = styled.div`
   border-radius: ${cursorConsts.size};
   
   background-color: ${cursorConsts.backgroundColor};
+  opacity: .6;
   
   pointer-events: none;
 `;
 
 // Object variables
 const onEnterBaseOptions: T_OnEnterLeaveOptions = {
-  scale: {current: 1.5},
-  backgroundColor: 'red'
+  scale: {current: 2},
+  opacity: {current: .3},
 }
 
 const onLeaveBaseOptions: T_OnEnterLeaveOptions = {
   scale: {current: 1},
-  backgroundColor: 'blue'
+  opacity: {current: .6},
 }
 
 // Types
@@ -68,6 +69,7 @@ export type T_LerpableOptions = {
   translateX: T_LerpableOption,
   translateY: T_LerpableOption,
   scale: T_LerpableOption,
+  opacity: T_LerpableOption,
 }
 
 type T_LerpableOptionsWithOptional = {
@@ -83,7 +85,8 @@ export type T_OnEnterLeaveOptions = T_StyleOptions & T_LerpableOptionsWithOption
 export type T_OnEnterLeave = (
   options: T_OnEnterLeaveOptions | null,
   addBaseStyles?: boolean,
-  persist?: boolean
+  persist?: boolean,
+  verbose?: boolean
 ) => void;
 
 type T_MousePosition = {
@@ -110,9 +113,10 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
 
   // Other refs
   const lerpableOptionsRef = useRef<T_LerpableOptions>({
-    translateX: {previous: 0, current: 0, amount: .05},
-    translateY: {previous: 0, current: 0, amount: .05},
+    translateX: {previous: 0, current: 0, amount: .25},
+    translateY: {previous: 0, current: 0, amount: .25},
     scale: {previous: 0, current: 0, amount: .1},
+    opacity: {previous: .6, current: .6, amount: .1},
   });
   const mousePositionRef = useRef<T_MousePosition>({ x: 0, y: 0 });
 
@@ -143,6 +147,7 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
 
       // Set the cursor style
       cursorRef.current.style.transform = `translate3d(${lerpableOptionsRef.current.translateX.previous}px, ${lerpableOptionsRef.current.translateY.previous}px, 0) scale(${lerpableOptionsRef.current.scale.previous})`;
+      cursorRef.current.style.opacity = `${lerpableOptionsRef.current.opacity.previous}`;
     } else {
       console.log(`[CustomCursor] cursorRef.current is null!`);
     }
@@ -162,18 +167,20 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
    * @param options {T_OnEnterLeaveOptions} - Options to apply to the cursor
    * @param addBaseStyles {boolean} - Whether to add the base styles or not
    * @param persist {boolean} - Whether to persist the styles or not
+   * @param verbose {boolean} - Whether to log or not
    *
    * @return {void}
    */
   const onCursorEnter: T_OnEnterLeave = (
     options,
     addBaseStyles = true,
-    persist = false
+    persist = false,
+    verbose = false
   ) => {
-    console.log("[CustomCursor] onCursorEnter");
+    verbose && console.log("[CustomCursor] onCursorEnter");
 
     if (!cursorRef.current) {
-      console.log(`[CustomCursor] cursorRef.current is null!`);
+      verbose && console.log(`[CustomCursor] cursorRef.current is null!`);
       return 0;
     }
 
@@ -184,12 +191,12 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
       // for each key in onEnterBaseOptions
       Object.keys(onEnterBaseOptions).forEach((key) => {
 
-        console.log(`[CustomCursor] key: ${key}`);
+        verbose && console.log(`[CustomCursor] key: ${key}`);
 
         // If the key is in lerpableOptionsRef.current
         if (key in lerpableOptionsRef.current) {
 
-          console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
+          verbose && console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
           const keyRef = key as keyof T_LerpableOptions;
           // Set the current value to the previous value
           toApply[keyRef]
@@ -204,8 +211,8 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
         }
       });
 
-      console.log(`[CustomCursor] toApplyStyle: ${JSON.stringify(toApplyStyle)}`);
-      console.log(`[CustomCursor] toApply: ${JSON.stringify(toApply)}`);
+      verbose && console.log(`[CustomCursor] toApplyStyle: ${JSON.stringify(toApplyStyle)}`);
+      verbose && console.log(`[CustomCursor] toApply: ${JSON.stringify(toApply)}`);
 
 
       // Set the cursor style
@@ -233,16 +240,20 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
    * @param options {T_OnEnterLeaveOptions} - Options to apply to the cursor
    * @param addBaseStyles {boolean} - Whether to add the base styles or not
    * @param persist {boolean} - Whether to persist the styles or not
+   * @param verbose {boolean} - Whether to log or not
+   *
+   * @return {void}
    */
   const onCursorLeave: T_OnEnterLeave = (
     options,
     addBaseStyles = true,
-    persist = false
+    persist = false,
+    verbose = false
   ) => {
-    console.log("[CustomCursor] onCursorLeave");
+    verbose && console.log("[CustomCursor] onCursorLeave");
 
     if (!cursorRef.current) {
-      console.log(`[CustomCursor] cursorRef.current is null!`);
+      verbose && console.log(`[CustomCursor] cursorRef.current is null!`);
       return 0;
     }
 
@@ -253,12 +264,12 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
       // for each key in onEnterBaseOptions
       Object.keys(onLeaveBaseOptions).forEach((key) => {
 
-        console.log(`[CustomCursor] key: ${key}`);
+        verbose && console.log(`[CustomCursor] key: ${key}`);
 
         // If the key is in lerpableOptionsRef.current
         if (key in lerpableOptionsRef.current) {
 
-          console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
+          verbose && console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
           const keyRef = key as keyof T_LerpableOptions;
           // Set the current value to the previous value
           toApply[keyRef]
@@ -273,8 +284,8 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
         }
       });
 
-      console.log(`[CustomCursor] toApplyStyle: ${JSON.stringify(toApplyStyle)}`);
-      console.log(`[CustomCursor] toApply: ${JSON.stringify(toApply)}`);
+      verbose && console.log(`[CustomCursor] toApplyStyle: ${JSON.stringify(toApplyStyle)}`);
+      verbose && console.log(`[CustomCursor] toApply: ${JSON.stringify(toApply)}`);
 
 
       // Set the cursor style

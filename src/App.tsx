@@ -45,14 +45,10 @@ const App = (): React.ReactElement => {
     <div className={styles.App}>
       <StyledMyButton
         onMouseEnter={() => {
-          console.log("hihi");
-
           customCursorRef.current?.onCursorEnter(null);
         }}
 
         onMouseLeave={() => {
-          console.log("hoho");
-
           customCursorRef.current?.onCursorLeave(null);
         }}
       >
