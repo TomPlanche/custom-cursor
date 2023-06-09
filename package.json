@@ -1,0 +1,28 @@
+{
+  "name": "custom-cursor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d build"
+  },
+  "dependencies": {
+    "gsap": "npm:@gsap/shockingly@^3.12.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "@types/styled-components": "^5.1.26",
+    "@vitejs/plugin-react": "^3.1.0",
+    "axios": "^1.4.0",
+    "sass": "^1.58.1",
+    "styled-components": "^5.3.10",
+    "typescript": "^4.9.3",
+    "vite": "^4.1.0"
+  }
+}
