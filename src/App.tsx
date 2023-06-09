@@ -4,11 +4,28 @@
  */
 
 // IMPORTS ===================================================================================================  IMPORTS
-import React, { useState } from 'react'
+import React, {RefObject, useRef} from 'react'
 
 import styles from './App.module.scss'
-import CustomCursor from "./components/CustomCursor/CustomCursor";
+import CustomCursor, {T_OnEnterLeave} from "./components/CustomCursor/CustomCursor";
+import styled from "styled-components";
+import MyButton from "./components/MyButton";
 // END IMPORTS ==========================================================================================   END IMPORTS
+
+// VARIABLES ================================================================================================ VARIABLES
+// Style variables
+const StyledMyButton = styled(MyButton)`
+  padding: 1rem 2rem;
+  background: darkblue;
+`;
+
+// Types
+type T_CursorRef = RefObject<{
+  onCursorEnter: T_OnEnterLeave,
+  onCursorLeave: T_OnEnterLeave,
+}>
+
+// END VARIABLES ======================================================================================= END VARIABLES
 
 // COMPONENT ================================================================================================ COMPONENT
 /**
@@ -17,13 +34,32 @@ import CustomCursor from "./components/CustomCursor/CustomCursor";
  * @constructor
  */
 const App = (): React.ReactElement => {
-  const [count, setCount] = useState(0)
+  // State(s)
+
+  // Ref(s)
+  const customCursorRef: T_CursorRef = useRef(null);
+
+  // Method(s)
 
   return (
     <div className={styles.App}>
-      <h1>custom-cursor</h1>
+      <StyledMyButton
+        onMouseEnter={() => {
+          console.log("hihi");
 
-      <CustomCursor />
+          customCursorRef.current?.onCursorEnter(null);
+        }}
+
+        onMouseLeave={() => {
+          console.log("hoho");
+
+          customCursorRef.current?.onCursorLeave(null);
+        }}
+      >
+        <h1>Hihi</h1>
+      </StyledMyButton>
+
+      <CustomCursor ref={customCursorRef}/>
     </div>
   )
 }

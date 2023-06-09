@@ -6,7 +6,16 @@
 
 // IMPORTS ===================================================================================================  IMPORTS
 import styled from "styled-components";
-import {useEffect, useRef, useState} from "react";
+import {
+  forwardRef,
+  ForwardRefExoticComponent,
+  ReactElement,
+  RefAttributes,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState
+} from "react";
 import {lerp} from "../../assets/utils";
 // END IMPORTS ==========================================================================================   END IMPORTS
 
@@ -29,13 +38,30 @@ const Cursor = styled.div`
   border-radius: ${cursorConsts.size};
   
   background-color: ${cursorConsts.backgroundColor};
+  
+  pointer-events: none;
 `;
 
+// Object variables
+const onEnterBaseOptions: T_OnEnterLeaveOptions = {
+  scale: {current: 1.5},
+  backgroundColor: 'red'
+}
+
+const onLeaveBaseOptions: T_OnEnterLeaveOptions = {
+  scale: {current: 1},
+  backgroundColor: 'blue'
+}
+
 // Types
-export type T_LerpableOption = {
+type T_LerpableOption = {
   previous: number,
   current: number,
   amount: number,
+}
+
+type T_LerpableOptionsOptional = {
+  [key in keyof T_LerpableOption]?: T_LerpableOption[key]
 }
 
 export type T_LerpableOptions = {
@@ -44,10 +70,28 @@ export type T_LerpableOptions = {
   scale: T_LerpableOption,
 }
 
-export type T_MousePosition = {
+type T_LerpableOptionsWithOptional = {
+  [key in keyof T_LerpableOptions]?: T_LerpableOptionsOptional;
+}
+
+type T_StyleOptions = {
+  backgroundColor?: string,
+}
+
+export type T_OnEnterLeaveOptions = T_StyleOptions & T_LerpableOptionsWithOptional;
+
+export type T_OnEnterLeave = (
+  options: T_OnEnterLeaveOptions | null,
+  addBaseStyles?: boolean,
+  persist?: boolean
+) => void;
+
+type T_MousePosition = {
   x: number,
   y: number,
 }
+
+type T_CustomCursor = ForwardRefExoticComponent<RefAttributes<unknown>>;
 // END VARIABLES ======================================================================================= END VARIABLES
 
 // COMPONENENT  ============================================================================================= COMPONENT
@@ -56,7 +100,7 @@ export type T_MousePosition = {
  * @return {JSX.Element}
  * @constructor
  **/
-const CustomCursor = () => {
+const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
   // State(s)
   const [hasMoved, setHasMoved] = useState<boolean>(false);
 
@@ -72,6 +116,10 @@ const CustomCursor = () => {
   });
   const mousePositionRef = useRef<T_MousePosition>({ x: 0, y: 0 });
 
+  useImperativeHandle(ref, () => ({
+    onCursorEnter,
+    onCursorLeave
+  }));
   // Method(s)
   const render = () => {
     if (cursorRef.current) {
@@ -83,7 +131,7 @@ const CustomCursor = () => {
       lerpableOptionsRef.current.translateX.current = mousePositionRef.current.x + window.scrollX;
       lerpableOptionsRef.current.translateY.current = mousePositionRef.current.y + window.scrollY;
 
-      Object.keys(lerpableOptionsRef.current).forEach((key, value) => {
+      Object.keys(lerpableOptionsRef.current).forEach((key) => {
         const keyRef = key as keyof T_LerpableOptions;
 
         lerpableOptionsRef.current[keyRef].previous = lerp(
@@ -105,6 +153,144 @@ const CustomCursor = () => {
   const handleMouseMove = (event: MouseEvent) => {
     !hasMoved && setHasMoved(true);
     mousePositionRef.current = { x: event.clientX, y: event.clientY };
+  }
+
+  /**
+   * @function onCursorLeave
+   * @description To call when the cursor leaves an element
+   *
+   * @param options {T_OnEnterLeaveOptions} - Options to apply to the cursor
+   * @param addBaseStyles {boolean} - Whether to add the base styles or not
+   * @param persist {boolean} - Whether to persist the styles or not
+   *
+   * @return {void}
+   */
+  const onCursorEnter: T_OnEnterLeave = (
+    options,
+    addBaseStyles = true,
+    persist = false
+  ) => {
+    console.log("[CustomCursor] onCursorEnter");
+
+    if (!cursorRef.current) {
+      console.log(`[CustomCursor] cursorRef.current is null!`);
+      return 0;
+    }
+
+    const toApplyStyle: T_StyleOptions = {};
+    const toApply: T_LerpableOptionsWithOptional = {};
+
+    if (addBaseStyles) {
+      // for each key in onEnterBaseOptions
+      Object.keys(onEnterBaseOptions).forEach((key) => {
+
+        console.log(`[CustomCursor] key: ${key}`);
+
+        // If the key is in lerpableOptionsRef.current
+        if (key in lerpableOptionsRef.current) {
+
+          console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
+          const keyRef = key as keyof T_LerpableOptions;
+          // Set the current value to the previous value
+          toApply[keyRef]
+            = {
+            ...lerpableOptionsRef.current[keyRef],
+            ...onEnterBaseOptions[keyRef]
+          };
+        } else if (key in onEnterBaseOptions) {
+          const keyRef = key as keyof T_StyleOptions;
+          // Set the current value to the previous value
+          toApplyStyle[keyRef] = onEnterBaseOptions[keyRef];
+        }
+      });
+
+      console.log(`[CustomCursor] toApplyStyle: ${JSON.stringify(toApplyStyle)}`);
+      console.log(`[CustomCursor] toApply: ${JSON.stringify(toApply)}`);
+
+
+      // Set the cursor style
+      Object.keys(toApplyStyle).forEach((key) => {
+        const keyRef = key as keyof T_StyleOptions;
+        cursorRef.current!.style[keyRef] = toApplyStyle[keyRef]!;
+      });
+
+      // Set the lerping options
+      Object.keys(toApply).forEach((key) => {
+        const keyRef = key as keyof T_LerpableOptions;
+
+        lerpableOptionsRef.current[keyRef]
+          = toApply[keyRef] as T_LerpableOptions[keyof T_LerpableOptions];
+      });
+    }
+
+
+  }
+
+  /**
+   * @function onCursorLeave
+   * @description To call when the cursor leaves an element
+   *
+   * @param options {T_OnEnterLeaveOptions} - Options to apply to the cursor
+   * @param addBaseStyles {boolean} - Whether to add the base styles or not
+   * @param persist {boolean} - Whether to persist the styles or not
+   */
+  const onCursorLeave: T_OnEnterLeave = (
+    options,
+    addBaseStyles = true,
+    persist = false
+  ) => {
+    console.log("[CustomCursor] onCursorLeave");
+
+    if (!cursorRef.current) {
+      console.log(`[CustomCursor] cursorRef.current is null!`);
+      return 0;
+    }
+
+    const toApplyStyle: T_StyleOptions = {};
+    const toApply: T_LerpableOptionsWithOptional = {};
+
+    if (addBaseStyles) {
+      // for each key in onEnterBaseOptions
+      Object.keys(onLeaveBaseOptions).forEach((key) => {
+
+        console.log(`[CustomCursor] key: ${key}`);
+
+        // If the key is in lerpableOptionsRef.current
+        if (key in lerpableOptionsRef.current) {
+
+          console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
+          const keyRef = key as keyof T_LerpableOptions;
+          // Set the current value to the previous value
+          toApply[keyRef]
+            = {
+            ...lerpableOptionsRef.current[keyRef],
+            ...onLeaveBaseOptions[keyRef]
+          };
+        } else if (key in onLeaveBaseOptions) {
+          const keyRef = key as keyof T_StyleOptions;
+          // Set the current value to the previous value
+          toApplyStyle[keyRef] = onLeaveBaseOptions[keyRef];
+        }
+      });
+
+      console.log(`[CustomCursor] toApplyStyle: ${JSON.stringify(toApplyStyle)}`);
+      console.log(`[CustomCursor] toApply: ${JSON.stringify(toApply)}`);
+
+
+      // Set the cursor style
+      Object.keys(toApplyStyle).forEach((key) => {
+        const keyRef = key as keyof T_StyleOptions;
+        cursorRef.current!.style[keyRef] = toApplyStyle[keyRef]!;
+      });
+
+      // Set the lerping options
+      Object.keys(toApply).forEach((key) => {
+        const keyRef = key as keyof T_LerpableOptions;
+
+        lerpableOptionsRef.current[keyRef]
+          = toApply[keyRef] as T_LerpableOptions[keyof T_LerpableOptions];
+      });
+    }
   }
 
   // Effect(s)
@@ -129,7 +315,10 @@ const CustomCursor = () => {
         = lerpableOptionsRef.current.translateY.current
         = mousePositionRef.current.y + window.scrollY;
 
-      lerpableOptionsRef.current.scale.current = 1;
+      lerpableOptionsRef.current.scale.current = 1.5;
+      setTimeout(() => {
+        lerpableOptionsRef.current.scale.current = 1;
+      }, 150);
     }
   }, [hasMoved])
   // Render
@@ -137,7 +326,7 @@ const CustomCursor = () => {
     <Cursor ref={cursorRef}>
     </Cursor>
   )
-}
+});
 // END COMPONENT =======================================================================================  END COMPONENT
 
 export default CustomCursor;
