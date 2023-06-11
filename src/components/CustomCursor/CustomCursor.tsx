@@ -113,9 +113,9 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
 
   // Other refs
   const lerpableOptionsRef = useRef<T_LerpableOptions>({
-    translateX: {previous: 0, current: 0, amount: .25},
-    translateY: {previous: 0, current: 0, amount: .25},
-    scale: {previous: 0, current: 0, amount: .1},
+    translateX: {previous: 0, current: 0, amount: .05},
+    translateY: {previous: 0, current: 0, amount: .05},
+    scale: {previous: 0, current: 0, amount: .2},
     opacity: {previous: .6, current: .6, amount: .1},
   });
   const mousePositionRef = useRef<T_MousePosition>({ x: 0, y: 0 });
@@ -329,7 +329,7 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
       lerpableOptionsRef.current.scale.current = 1.5;
       setTimeout(() => {
         lerpableOptionsRef.current.scale.current = 1;
-      }, 150);
+      }, 250);
     }
   }, [hasMoved])
   // Render

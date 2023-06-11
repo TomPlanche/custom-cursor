@@ -14,7 +14,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLElement>
 type MyButtonProps = AnchorProps | ButtonProps
 // END VARIABLES ======================================================================================= END VARIABLES
 
-function isAnchor(props: MyButtonProps): props is AnchorProps {
+const isAnchor = (props: MyButtonProps): props is AnchorProps => {
   return (props as AnchorProps).href !== undefined
 }
 
@@ -30,10 +30,6 @@ export function MyButton(props: MyButtonProps) {
   }
   return <button type="button" className="my-button" {...props} />
 }
-
-
-
-
 // END COMPONENT =======================================================================================  END COMPONENT
 
 export default MyButton;
