@@ -5,7 +5,6 @@
  */
 
 // IMPORTS ===================================================================================================  IMPORTS
-import styled from "styled-components";
 import {
   forwardRef,
   ForwardRefExoticComponent,
@@ -16,6 +15,10 @@ import {
   useRef,
   useState
 } from "react";
+
+import {gsap} from "gsap";
+import styled from "styled-components";
+
 import {lerp} from "../../assets/utils";
 // END IMPORTS ==========================================================================================   END IMPORTS
 
@@ -28,19 +31,22 @@ const cursorConsts = {
 
 const Cursor = styled.div`
   position: absolute;
-  
+
   height: ${cursorConsts.size};
   width: ${cursorConsts.size};
-  
+
   top: calc(${cursorConsts.size} / -2);
   left: calc(${cursorConsts.size} / -2);
-  
+
   border-radius: ${cursorConsts.size};
-  
+
   background-color: ${cursorConsts.backgroundColor};
   opacity: .6;
-  
+
+  z-index: 9999;
+
   pointer-events: none;
+  
 `;
 
 // Object variables
@@ -80,10 +86,25 @@ type T_StyleOptions = {
   backgroundColor?: string,
 }
 
-export type T_OnEnterLeaveOptions = T_StyleOptions & T_LerpableOptionsWithOptional;
+export type T_OnEnterOptions = T_StyleOptions & T_LerpableOptionsWithOptional & {
+  svg?: string;
+}
+
+export type T_OnLeaveOptions = T_StyleOptions & T_LerpableOptionsWithOptional & {
+  svg?: boolean;
+}
+
+export type T_OnEnterLeaveOptions = T_OnEnterOptions | T_OnLeaveOptions | null;
+
+export type T_OnEnterLeaveArgs = {
+  options: T_OnEnterLeaveOptions,
+  addBaseStyles?: boolean,
+  persist?: boolean,
+  verbose?: boolean
+}
 
 export type T_OnEnterLeave = (
-  options: T_OnEnterLeaveOptions | null,
+  options: T_OnEnterLeaveOptions,
   addBaseStyles?: boolean,
   persist?: boolean,
   verbose?: boolean
@@ -94,7 +115,11 @@ type T_MousePosition = {
   y: number,
 }
 
-type T_CustomCursor = ForwardRefExoticComponent<RefAttributes<unknown>>;
+type T_CustomCursorProps = {
+  theme?: 'light' | 'dark',
+}
+
+type T_CustomCursor = ForwardRefExoticComponent<T_CustomCursorProps & RefAttributes<unknown>>;
 // END VARIABLES ======================================================================================= END VARIABLES
 
 // COMPONENENT  ============================================================================================= COMPONENT
@@ -103,7 +128,7 @@ type T_CustomCursor = ForwardRefExoticComponent<RefAttributes<unknown>>;
  * @return {JSX.Element}
  * @constructor
  **/
-const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
+const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
   // State(s)
   const [hasMoved, setHasMoved] = useState<boolean>(false);
 
@@ -113,17 +138,18 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
 
   // Other refs
   const lerpableOptionsRef = useRef<T_LerpableOptions>({
-    translateX: {previous: 0, current: 0, amount: .25},
-    translateY: {previous: 0, current: 0, amount: .25},
+    translateX: {previous: 0, current: 0, amount: .15},
+    translateY: {previous: 0, current: 0, amount: .15},
     scale: {previous: 0, current: 0, amount: .1},
     opacity: {previous: .6, current: .6, amount: .1},
   });
-  const mousePositionRef = useRef<T_MousePosition>({ x: 0, y: 0 });
+  const mousePositionRef = useRef<T_MousePosition>({x: 0, y: 0});
 
   useImperativeHandle(ref, () => ({
     onCursorEnter,
     onCursorLeave
   }));
+
   // Method(s)
   const render = () => {
     if (cursorRef.current) {
@@ -148,16 +174,19 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
       // Set the cursor style
       cursorRef.current.style.transform = `translate3d(${lerpableOptionsRef.current.translateX.previous}px, ${lerpableOptionsRef.current.translateY.previous}px, 0) scale(${lerpableOptionsRef.current.scale.previous})`;
       cursorRef.current.style.opacity = `${lerpableOptionsRef.current.opacity.previous}`;
-    } else {
-      console.log(`[CustomCursor] cursorRef.current is null!`);
     }
 
     requestAnimationFrame(render);
   }
 
+  /**
+   * @function onCursorMove
+   * @description To call when the cursor moves
+   * @param event {MouseEvent} - The mouse event
+   */
   const handleMouseMove = (event: MouseEvent) => {
     !hasMoved && setHasMoved(true);
-    mousePositionRef.current = { x: event.clientX, y: event.clientY };
+    mousePositionRef.current = {x: event.clientX, y: event.clientY};
   }
 
   /**
@@ -171,21 +200,24 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
    *
    * @return {void}
    */
+  // @ts-ignore
   const onCursorEnter: T_OnEnterLeave = (
-    options,
-    addBaseStyles = true,
-    persist = false,
-    verbose = false
-  ) => {
+    options: T_OnEnterLeaveOptions,
+    addBaseStyles: boolean = true,
+    persist: boolean = false,
+    verbose: boolean = false
+  ): void => {
     verbose && console.log("[CustomCursor] onCursorEnter");
 
     if (!cursorRef.current) {
       verbose && console.log(`[CustomCursor] cursorRef.current is null!`);
-      return 0;
+
+      return;
     }
 
     const toApplyStyle: T_StyleOptions = {};
     const toApply: T_LerpableOptionsWithOptional = {};
+
 
     if (addBaseStyles) {
       // for each key in onEnterBaseOptions
@@ -195,9 +227,29 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
 
         // If the key is in lerpableOptionsRef.current
         if (key in lerpableOptionsRef.current) {
-
           verbose && console.log(`[CustomCursor] key: ${key} is in lerpableOptionsRef.current`);
+
           const keyRef = key as keyof T_LerpableOptions;
+
+          // If the key is in options
+          if (
+            options
+            && key in options
+          ) {
+            verbose && console.log(`[CustomCursor] key: ${key} is in options`);
+
+            const keyRef = key as keyof T_LerpableOptions;
+            // Set the current value to the previous value
+            toApply[keyRef]
+              = {
+              ...lerpableOptionsRef.current[keyRef],
+              ...options[keyRef]
+            };
+
+            // go to the next iteration
+            return;
+          }
+
           // Set the current value to the previous value
           toApply[keyRef]
             = {
@@ -230,6 +282,21 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
       });
     }
 
+    if (options) {
+      if (options.svg) {
+        // svg is the path to the svg file
+        cursorRef.current!.innerHTML = `<img src="${options.svg}" alt=""/>`;
+      }
+
+      if (options.backgroundColor) {
+        cursorRef.current!.style.backgroundColor = options.backgroundColor;
+      }
+
+      if (options.opacity) {
+        cursorRef.current!.style.opacity = `${options.opacity.current}`;
+      }
+    }
+
 
   }
 
@@ -244,17 +311,18 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
    *
    * @return {void}
    */
+  // @ts-ignore
   const onCursorLeave: T_OnEnterLeave = (
-    options,
-    addBaseStyles = true,
-    persist = false,
-    verbose = false
-  ) => {
+    options: T_OnEnterLeaveOptions,
+    addBaseStyles: boolean = true,
+    persist: boolean = false,
+    verbose: boolean = false
+  ): void => {
     verbose && console.log("[CustomCursor] onCursorLeave");
 
     if (!cursorRef.current) {
       verbose && console.log(`[CustomCursor] cursorRef.current is null!`);
-      return 0;
+      return;
     }
 
     const toApplyStyle: T_StyleOptions = {};
@@ -302,6 +370,13 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
           = toApply[keyRef] as T_LerpableOptions[keyof T_LerpableOptions];
       });
     }
+
+    if (options) {
+      if (options.svg === false) {
+        cursorRef.current!.innerHTML = '';
+        cursorRef.current!.style.backgroundColor = cursorConsts.backgroundColor;
+      }
+    }
   }
 
   // Effect(s)
@@ -332,13 +407,23 @@ const CustomCursor: T_CustomCursor = forwardRef((_, ref): ReactElement => {
       }, 150);
     }
   }, [hasMoved])
+
+  useEffect(() => {
+    if (props.theme) {
+      gsap.set(cursorRef.current, {
+        backgroundColor: props.theme === 'light' ? '#222222' : '#eeeeee',
+      })
+    }
+  }, [props.theme]);
+
   // Render
   return (
-    <Cursor ref={cursorRef}>
-    </Cursor>
+    <Cursor ref={cursorRef} />
   )
 });
 // END COMPONENT =======================================================================================  END COMPONENT
+
+CustomCursor.displayName = 'CustomCursor';
 
 export default CustomCursor;
 
