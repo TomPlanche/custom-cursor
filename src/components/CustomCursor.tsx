@@ -2,6 +2,8 @@
  * @file src/components/CustomCursor/CustomCursor.tsx
  * @description CustomCursor component.
  * @author Tom Planche
+ *
+ * @todo Add a way to add a custom cursor
  */
 
 // IMPORTS ===================================================================================================  IMPORTS
@@ -86,28 +88,30 @@ type T_StyleOptions = {
   backgroundColor?: string,
 }
 
-export type T_OnEnterOptions = T_StyleOptions & T_LerpableOptionsWithOptional & (
+type T_NonLerpableOptions = {
+  block?: boolean,
+}
+
+type T_NonLerpableOptionsEnter = (
   | { svg: string; img?: never }
   | { svg?: never; img: string }
-);
+) & T_NonLerpableOptions;
 
-export type T_OnLeaveOptions = T_StyleOptions & T_LerpableOptionsWithOptional & (
-  | { svg?: boolean; img?: never }
-  | { svg?: never; img?: boolean }
-);
+type T_NonLerpableOptionsLeave = (
+  | { svg?: string; img?: never }
+  | { svg?: never; img?: string }
+) & T_NonLerpableOptions;
+
+export type T_OnEnterOptions = T_StyleOptions & T_LerpableOptionsWithOptional & T_NonLerpableOptionsEnter;
+
+export type T_OnLeaveOptions = T_StyleOptions & T_LerpableOptionsWithOptional & T_NonLerpableOptionsLeave;
 
 export type T_OnEnterLeaveOptions = T_OnEnterOptions | T_OnLeaveOptions | null;
-
-export type T_OnEnterLeaveArgs = {
-  options: T_OnEnterLeaveOptions,
-  addBaseStyles?: boolean,
-  verbose?: boolean
-}
 
 export type T_OnEnterLeave = (
   options: T_OnEnterLeaveOptions,
   addBaseStyles?: boolean,
-  verbose?: boolean
+  verbose?: boolean,
 ) => void;
 
 type T_MousePosition = {
@@ -131,6 +135,7 @@ type T_CustomCursor = ForwardRefExoticComponent<T_CustomCursorProps & RefAttribu
 const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
   // State(s)
   const [hasMoved, setHasMoved] = useState<boolean>(false);
+  const [isBlocked, setIsBlocked] = useState<boolean>(false);
 
   // Ref(s)
   // HTML refs
@@ -158,8 +163,10 @@ const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
         return 0;
       }
 
-      lerpableOptionsRef.current.translateX.current = mousePositionRef.current.x + window.scrollX;
-      lerpableOptionsRef.current.translateY.current = mousePositionRef.current.y + window.scrollY;
+      if (!isBlocked) {
+        lerpableOptionsRef.current.translateX.current = mousePositionRef.current.x + window.scrollX;
+        lerpableOptionsRef.current.translateY.current = mousePositionRef.current.y + window.scrollY;
+      }
 
       Object.keys(lerpableOptionsRef.current).forEach((key) => {
         const keyRef = key as keyof T_LerpableOptions;
@@ -186,6 +193,9 @@ const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
    */
   const handleMouseMove = (event: MouseEvent) => {
     !hasMoved && setHasMoved(true);
+
+    if (isBlocked) return;
+
     mousePositionRef.current = {x: event.clientX, y: event.clientY};
   }
 
@@ -211,6 +221,13 @@ const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
       verbose && console.log(`[CustomCursor] cursorRef.current is null!`);
 
       return;
+    }
+
+    if (
+      options &&
+      options.block !== undefined
+    ) {
+      setIsBlocked(options.block);
     }
 
     const toApplyStyle: T_StyleOptions = {};
@@ -327,6 +344,13 @@ const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
     const toApplyStyle: T_StyleOptions = {};
     const toApply: T_LerpableOptionsWithOptional = {};
 
+    if (
+      options &&
+      options.block !== undefined
+    ) {
+      setIsBlocked(options.block);
+    }
+
     if (addBaseStyles) {
       // for each key in onEnterBaseOptions
       Object.keys(onLeaveBaseOptions).forEach((key) => {
@@ -371,9 +395,13 @@ const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
     }
 
     if (options) {
-      if (options.svg === false) {
+      if (options.svg !== undefined && !options.svg) {
         cursorRef.current!.innerHTML = '';
         cursorRef.current!.style.backgroundColor = cursorConsts.backgroundColor;
+      }
+
+      if (options.block !== undefined) {
+        setIsBlocked(options.block);
       }
     }
   }
@@ -414,6 +442,10 @@ const CustomCursor: T_CustomCursor = forwardRef((props, ref): ReactElement => {
       })
     }
   }, [props.theme]);
+
+  useEffect(() => {
+    console.log(`[CustomCursor] isBlocked: ${isBlocked}`);
+  }, [isBlocked]);
 
   // Render
   return (
