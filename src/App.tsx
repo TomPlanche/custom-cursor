@@ -6,7 +6,7 @@
 // IMPORTS ===================================================================================================  IMPORTS
 import React, {RefObject, useRef} from 'react'
 
-import CustomCursor, {T_OnEnterLeave} from "./components/CustomCursor/CustomCursor";
+import CustomCursor, {T_OnEnterLeave} from "./components/CustomCursor";
 import styled from "styled-components";
 import MyButton from "./components/MyButton";
 import MagnetikContainer from "./components/MagnetikContainer";
@@ -21,6 +21,8 @@ export const variables = {
 const StyledApp = styled.div`
   height: 100vh;
   width: 100vw;
+  
+  overflow-x: hidden;
   
   display: flex;
   flex-direction: column;

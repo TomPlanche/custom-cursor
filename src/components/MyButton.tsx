@@ -16,7 +16,7 @@ import {
 
 import styled from "styled-components";
 
-import {T_OnEnterLeave, T_OnEnterLeaveArgs} from "./CustomCursor/CustomCursor";
+import {T_OnEnterLeave, T_OnEnterLeaveArgs} from "./CustomCursor";
 // END IMPORTS ==========================================================================================   END IMPORTS
 
 // VARIABLES ================================================================================================ VARIABLES
